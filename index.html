@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TrailProno — Pronos Trail Running</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0a; --bg2: #141414; --bg3: #1c1c1c; --card: #181818;
+    --border: rgba(255,255,255,0.08); --border2: rgba(255,255,255,0.15);
+    --text: #f0ede6; --muted: #888; --accent: #e8c547; --accent2: #c8a830;
+    --red: #e05a3a; --green: #4caf7d; --blue: #5a9fd4;
+    --radius: 12px; --radius-sm: 8px;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html { scroll-behavior:smooth; }
+  body { background:var(--bg); color:var(--text); font-family:'DM Sans',sans-serif; font-size:16px; line-height:1.6; min-height:100vh; }
+  .topbar { position:fixed; top:0; left:0; right:0; z-index:100; background:rgba(10,10,10,0.92); backdrop-filter:blur(12px); border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; padding:0 24px; height:60px; }
+  .logo { font-family:'Bebas Neue',sans-serif; font-size:26px; letter-spacing:2px; color:var(--accent); }
+  .logo span { color:var(--text); }
+  .nav { display:flex; gap:8px; }
+  .nav button { background:transparent; border:1px solid var(--border); color:var(--muted); padding:6px 16px; border-radius:20px; font-size:13px; cursor:pointer; font-family:'DM Sans',sans-serif; transition:all 0.2s; }
+  .nav button:hover, .nav button.active { border-color:var(--accent); color:var(--accent); }
+  .page { display:none; padding-top:60px; }
+  .page.active { display:block; }
+  .hero { position:relative; min-height:88vh; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:40px 24px; overflow:hidden; }
+  .hero-bg { position:absolute; inset:0; background:radial-gradient(ellipse at 50% 0%,rgba(232,197,71,0.12) 0%,transparent 60%),radial-gradient(ellipse at 80% 80%,rgba(90,159,212,0.08) 0%,transparent 50%); pointer-events:none; }
+  .hero-grid { position:absolute; inset:0; opacity:0.04; background-image:repeating-linear-gradient(0deg,#fff 0,#fff 1px,transparent 1px,transparent 60px),repeating-linear-gradient(90deg,#fff 0,#fff 1px,transparent 1px,transparent 60px); pointer-events:none; }
+  .race-badge { display:inline-flex; align-items:center; gap:8px; background:rgba(232,197,71,0.12); border:1px solid rgba(232,197,71,0.3); color:var(--accent); padding:6px 16px; border-radius:20px; font-size:12px; letter-spacing:1px; text-transform:uppercase; font-weight:600; margin-bottom:24px; animation:pulse-border 3s infinite; }
+  @keyframes pulse-border { 0%,100%{border-color:rgba(232,197,71,0.3)} 50%{border-color:rgba(232,197,71,0.7)} }
+  .hero h1 { font-family:'Bebas Neue',sans-serif; font-size:clamp(52px,10vw,110px); line-height:0.9; letter-spacing:4px; margin-bottom:20px; }
+  .hero h1 .accent { color:var(--accent); }
+  .hero p.tagline { font-size:clamp(15px,2vw,18px); color:var(--muted); max-width:500px; margin-bottom:40px; font-weight:300; }
+  .hero-stats { display:flex; gap:40px; margin-bottom:48px; flex-wrap:wrap; justify-content:center; }
+  .hero-stat { text-align:center; }
+  .hero-stat .num { font-family:'DM Mono',monospace; font-size:32px; font-weight:500; color:var(--accent); display:block; }
+  .hero-stat .lbl { font-size:12px; color:var(--muted); text-transform:uppercase; letter-spacing:1px; }
+  .btn-primary { background:var(--accent); color:#0a0a0a; border:none; padding:16px 40px; border-radius:4px; font-size:15px; font-weight:700; cursor:pointer; font-family:'DM Sans',sans-serif; letter-spacing:0.5px; transition:all 0.2s; display:inline-block; text-decoration:none; }
+  .btn-primary:hover { background:var(--accent2); transform:translateY(-2px); }
+  .btn-secondary { background:transparent; color:var(--text); border:1px solid var(--border2); padding:15px 32px; border-radius:4px; font-size:15px; font-weight:500; cursor:pointer; font-family:'DM Sans',sans-serif; transition:all 0.2s; margin-left:12px; }
+  .btn-secondary:hover { border-color:var(--accent); color:var(--accent); }
+  .section { padding:64px 24px; max-width:1000px; margin:0 auto; }
+  .section-title { font-family:'Bebas Neue',sans-serif; font-size:clamp(36px,5vw,56px); letter-spacing:2px; margin-bottom:8px; }
+  .section-subtitle { color:var(--muted); font-size:15px; margin-bottom:40px; }
+  .race-card { background:var(--card); border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; transition:border-color 0.2s,transform 0.2s; cursor:pointer; }
+  .race-card:hover { border-color:var(--border2); transform:translateY(-4px); }
+  .race-card.featured { border-color:rgba(232,197,71,0.4); }
+  .race-img { height:160px; background:linear-gradient(135deg,#1a2a1a 0%,#0d1a2a 100%); position:relative; overflow:hidden; display:flex; align-items:flex-end; padding:16px; }
+  .race-img::before { content:''; position:absolute; inset:0; background:url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 160"><path d="M0 120 Q50 60 100 80 Q150 100 200 40 Q250 -20 300 60 Q350 120 400 50 L400 160 L0 160Z" fill="rgba(255,255,255,0.03)"/><path d="M0 140 Q80 90 160 110 Q240 130 320 70 Q360 50 400 80 L400 160 L0 160Z" fill="rgba(255,255,255,0.05)"/></svg>') center/cover; }
+  .race-status { position:absolute; top:12px; right:12px; font-size:11px; font-weight:600; letter-spacing:1px; text-transform:uppercase; padding:4px 10px; border-radius:20px; }
+  .race-status.open { background:rgba(76,175,125,0.2); color:var(--green); border:1px solid rgba(76,175,125,0.4); }
+  .race-status.closed { background:rgba(136,136,136,0.15); color:var(--muted); border:1px solid rgba(136,136,136,0.3); }
+  .race-status.soon { background:rgba(90,159,212,0.15); color:var(--blue); border:1px solid rgba(90,159,212,0.3); }
+  .race-status.live { background:rgba(224,90,58,0.2); color:var(--red); border:1px solid rgba(224,90,58,0.4); animation:pulse-border 2s infinite; }
+  .race-name { font-family:'Bebas Neue',sans-serif; font-size:22px; letter-spacing:1px; color:#fff; position:relative; z-index:1; }
+  .race-km { font-size:13px; color:rgba(255,255,255,0.5); font-family:'DM Mono',monospace; position:relative; z-index:1; margin-top:2px; }
+  .race-body { padding:16px 20px; }
+  .race-meta { display:flex; gap:16px; margin-bottom:8px; flex-wrap:wrap; }
+  .race-meta-item { font-size:12px; color:var(--muted); display:flex; align-items:center; gap:5px; }
+  .race-meta-item strong { color:var(--text); }
+  .race-pronos { font-size:13px; color:var(--muted); display:flex; align-items:center; gap:6px; margin-top:12px; }
+  .prono-count { background:var(--bg3); border:1px solid var(--border); color:var(--accent); font-family:'DM Mono',monospace; font-size:13px; font-weight:500; padding:2px 10px; border-radius:20px; }
+  .race-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:20px; }
+  .form-wrap { max-width:700px; margin:0 auto; background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:40px; }
+  .form-race-header { display:flex; align-items:center; gap:16px; margin-bottom:32px; padding-bottom:24px; border-bottom:1px solid var(--border); }
+  .form-race-icon { width:48px; height:48px; border-radius:8px; background:rgba(232,197,71,0.1); border:1px solid rgba(232,197,71,0.3); display:flex; align-items:center; justify-content:center; font-family:'Bebas Neue',sans-serif; font-size:20px; color:var(--accent); }
+  .form-step { margin-bottom:32px; }
+  .step-label { font-size:11px; text-transform:uppercase; letter-spacing:2px; color:var(--accent); font-weight:600; margin-bottom:16px; display:flex; align-items:center; gap:10px; }
+  .step-label::after { content:''; flex:1; height:1px; background:var(--border); }
+  .form-row { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  .form-field { margin-bottom:16px; }
+  .form-field label { font-size:12px; color:var(--muted); display:block; margin-bottom:6px; text-transform:uppercase; letter-spacing:0.5px; }
+  .form-field input { width:100%; background:var(--bg3); border:1px solid var(--border); color:var(--text); padding:12px 16px; border-radius:var(--radius-sm); font-size:15px; font-family:'DM Sans',sans-serif; transition:border-color 0.2s; outline:none; }
+  .form-field input:focus { border-color:var(--accent); }
+  .form-field input::placeholder { color:rgba(136,136,136,0.5); }
+  .runners-grid { display:grid; grid-template-columns:repeat(5,1fr); gap:10px; }
+  .runner-slot { background:var(--bg3); border:1px solid var(--border); border-radius:var(--radius-sm); padding:12px 10px; text-align:center; transition:border-color 0.2s; }
+  .runner-slot:focus-within { border-color:var(--accent); }
+  .runner-pos { font-family:'Bebas Neue',sans-serif; font-size:22px; color:var(--accent); line-height:1; margin-bottom:8px; }
+  .runner-slot input { width:100%; background:transparent; border:none; border-bottom:1px solid var(--border); color:var(--text); font-size:13px; text-align:center; padding:4px 2px; outline:none; font-family:'DM Sans',sans-serif; margin-bottom:4px; }
+  .runner-slot input::placeholder { color:rgba(136,136,136,0.4); font-size:12px; }
+  .runner-slot input:focus { border-bottom-color:var(--accent); }
+  .runner-gender { font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:1px; }
+  .form-submit-area { margin-top:32px; border-top:1px solid var(--border); padding-top:24px; }
+  .legal-notice { font-size:12px; color:var(--muted); margin-bottom:16px; line-height:1.5; }
+  .submit-btn { width:100%; background:var(--accent); color:#0a0a0a; border:none; padding:16px; border-radius:4px; font-size:16px; font-weight:700; cursor:pointer; font-family:'DM Sans',sans-serif; letter-spacing:0.5px; transition:all 0.2s; }
+  .submit-btn:hover { background:var(--accent2); }
+  .submit-btn:disabled { background:var(--bg3); color:var(--muted); cursor:not-allowed; }
+  .success-card { max-width:500px; margin:60px auto; background:var(--card); border:1px solid rgba(76,175,125,0.4); border-radius:var(--radius); padding:48px; text-align:center; }
+  .success-icon { width:72px; height:72px; border-radius:50%; background:rgba(76,175,125,0.15); border:2px solid var(--green); display:flex; align-items:center; justify-content:center; font-size:32px; margin:0 auto 24px; }
+  .leaderboard-header { display:grid; grid-template-columns:48px 1fr 120px 80px; gap:12px; padding:10px 20px; font-size:11px; text-transform:uppercase; letter-spacing:1px; color:var(--muted); border-bottom:1px solid var(--border); margin-bottom:8px; }
+  .leaderboard-row { display:grid; grid-template-columns:48px 1fr 120px 80px; gap:12px; padding:14px 20px; background:var(--card); border:1px solid var(--border); border-radius:var(--radius-sm); margin-bottom:6px; align-items:center; transition:border-color 0.2s; }
+  .leaderboard-row:hover { border-color:var(--border2); }
+  .leaderboard-row.top1 { border-color:rgba(232,197,71,0.5); background:rgba(232,197,71,0.05); }
+  .leaderboard-row.top2 { border-color:rgba(200,200,200,0.3); }
+  .leaderboard-row.top3 { border-color:rgba(176,120,60,0.3); }
+  .rank { font-family:'Bebas Neue',sans-serif; font-size:24px; color:var(--muted); line-height:1; }
+  .rank.r1 { color:var(--accent); } .rank.r2 { color:#c8c8c8; } .rank.r3 { color:#b0783c; }
+  .player-info { min-width:0; }
+  .player-pseudo { font-weight:600; font-size:15px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .player-email { font-size:12px; color:var(--muted); }
+  .player-score { font-family:'DM Mono',monospace; font-size:15px; font-weight:500; text-align:center; }
+  .player-badge { display:inline-flex; align-items:center; justify-content:center; font-size:11px; font-weight:600; letter-spacing:0.5px; text-transform:uppercase; padding:4px 10px; border-radius:20px; }
+  .badge-gold { background:rgba(232,197,71,0.15); color:var(--accent); border:1px solid rgba(232,197,71,0.4); }
+  .badge-silver { background:rgba(200,200,200,0.1); color:#c8c8c8; border:1px solid rgba(200,200,200,0.3); }
+  .badge-bronze { background:rgba(176,120,60,0.15); color:#b0783c; border:1px solid rgba(176,120,60,0.3); }
+  .badge-default { background:var(--bg3); color:var(--muted); border:1px solid var(--border); }
+  .admin-card { background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:24px; margin-bottom:16px; }
+  .admin-card h3 { font-size:15px; font-weight:600; margin-bottom:16px; color:var(--accent); }
+  .results-grid { display:grid; grid-template-columns:repeat(5,1fr); gap:10px; }
+  .result-slot { text-align:center; }
+  .result-slot .pos { font-family:'Bebas Neue',sans-serif; font-size:18px; color:var(--muted); }
+  .result-slot input { width:100%; background:var(--bg3); border:1px solid var(--border); color:var(--text); padding:8px; border-radius:6px; font-size:13px; text-align:center; outline:none; font-family:'DM Sans',sans-serif; margin-top:4px; }
+  .result-slot input:focus { border-color:var(--accent); }
+  .how-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:24px; }
+  .how-card { background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:28px 24px; position:relative; overflow:hidden; }
+  .how-card::before { content:attr(data-num); position:absolute; top:-10px; right:10px; font-family:'Bebas Neue',sans-serif; font-size:80px; color:rgba(255,255,255,0.04); line-height:1; }
+  .how-card h3 { font-size:16px; font-weight:600; margin-bottom:8px; }
+  .how-card p { font-size:13px; color:var(--muted); line-height:1.6; }
+  .points-table { background:var(--card); border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; }
+  .pt-row { display:flex; align-items:center; padding:14px 20px; border-bottom:1px solid var(--border); gap:16px; }
+  .pt-row:last-child { border-bottom:none; }
+  .pt-pos { font-family:'Bebas Neue',sans-serif; font-size:20px; color:var(--accent); width:40px; }
+  .pt-desc { flex:1; font-size:14px; }
+  .pt-pts { font-family:'DM Mono',monospace; font-size:15px; font-weight:500; color:var(--green); }
+  .pt-bonus { font-size:12px; color:var(--muted); }
+  .tabs { display:flex; gap:4px; margin-bottom:24px; background:var(--bg2); padding:4px; border-radius:var(--radius-sm); border:1px solid var(--border); width:fit-content; }
+  .tab { padding:8px 20px; border-radius:6px; font-size:13px; font-weight:500; cursor:pointer; font-family:'DM Sans',sans-serif; border:none; background:transparent; color:var(--muted); transition:all 0.2s; }
+  .tab.active { background:var(--card); color:var(--text); border:1px solid var(--border); }
+  .partner-banner { background:linear-gradient(135deg,rgba(232,197,71,0.08) 0%,rgba(90,159,212,0.08) 100%); border:1px solid rgba(232,197,71,0.2); border-radius:var(--radius); padding:28px 32px; display:flex; align-items:center; gap:24px; margin-bottom:40px; flex-wrap:wrap; }
+  .partner-prize { flex:1; min-width:200px; }
+  .prize-label { font-size:11px; text-transform:uppercase; letter-spacing:2px; color:var(--accent); margin-bottom:4px; }
+  .prize-name { font-family:'Bebas Neue',sans-serif; font-size:28px; letter-spacing:1px; }
+  .prize-sub { font-size:13px; color:var(--muted); }
+  .footer { border-top:1px solid var(--border); padding:32px 24px; text-align:center; }
+  .footer p { font-size:13px; color:var(--muted); }
+  .footer .logo { font-size:20px; display:block; margin-bottom:8px; }
+  .toast { position:fixed; bottom:24px; right:24px; z-index:1000; background:var(--card); border:1px solid var(--border); padding:14px 20px; border-radius:var(--radius); font-size:14px; display:none; box-shadow:0 8px 32px rgba(0,0,0,0.4); max-width:320px; }
+  .toast.show { display:flex; align-items:center; gap:12px; }
+  .toast.success { border-color:rgba(76,175,125,0.5); }
+  .toast.error { border-color:rgba(224,90,58,0.5); }
+  @media (max-width:600px) {
+    .runners-grid,.results-grid { grid-template-columns:repeat(3,1fr); }
+    .form-row { grid-template-columns:1fr; }
+    .form-wrap { padding:24px 16px; }
+    .leaderboard-header { display:none; }
+    .leaderboard-row { grid-template-columns:40px 1fr 80px; }
+    .leaderboard-row>*:nth-child(4) { display:none; }
+    .topbar { padding:0 16px; }
+    .nav button span { display:none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="logo">TRAIL<span>PRONO</span></div>
+  <div class="nav">
+    <button class="active" onclick="showPage('home')">🏔️ <span>Accueil</span></button>
+    <button onclick="showPage('races')">📋 <span>Courses</span></button>
+    <button onclick="showPage('leaderboard')">🏆 <span>Classement</span></button>
+    <button onclick="showPage('admin')">⚙️ <span>Admin</span></button>
+  </div>
+</div>
+
+<!-- HOME -->
+<div id="page-home" class="page active">
+  <div class="hero">
+    <div class="hero-bg"></div>
+    <div class="hero-grid"></div>
+    <div class="race-badge">
+      <span style="width:6px;height:6px;background:var(--green);border-radius:50%;display:inline-block;animation:pulse-border 1.5s infinite"></span>
+      Pronos ouverts — UTMB® 2025
+    </div>
+    <h1>TES <span class="accent">PRONOS</span><br>TRAIL</h1>
+    <p class="tagline">Pronostique les 5 premiers H & F des plus grandes courses de montagne. Grimpe dans le classement. Gagne des cadeaux.</p>
+    <div class="hero-stats">
+      <div class="hero-stat"><span class="num" id="stat-pronos">—</span><span class="lbl">Pronos</span></div>
+      <div class="hero-stat"><span class="num" id="stat-races">—</span><span class="lbl">Courses ouvertes</span></div>
+      <div class="hero-stat"><span class="num">48h</span><span class="lbl">Avant fermeture</span></div>
+    </div>
+    <div>
+      <button class="btn-primary" onclick="showPage('races')">Faire mes pronos →</button>
+      <button class="btn-secondary" onclick="showPage('leaderboard')">Voir le classement</button>
+    </div>
+  </div>
+  <div class="section">
+    <div class="section-title">COMMENT ÇA <span style="color:var(--accent)">MARCHE</span></div>
+    <p class="section-subtitle">Simple, rapide, addictif — jouable depuis ton téléphone en 2 minutes</p>
+    <div class="how-grid">
+      <div class="how-card" data-num="1"><div style="font-size:28px;margin-bottom:12px">✍️</div><h3>Inscris-toi</h3><p>Email + pseudo. Pas de mot de passe, pas de complication. Tu reçois tes résultats par mail.</p></div>
+      <div class="how-card" data-num="2"><div style="font-size:28px;margin-bottom:12px">🔮</div><h3>Pronostique</h3><p>Choisis les 5 premiers hommes et femmes de la course. Plus tu es précis, plus tu marques de points.</p></div>
+      <div class="how-card" data-num="3"><div style="font-size:28px;margin-bottom:12px">📊</div><h3>Accumule</h3><p>Les points s'accumulent course après course. Le classement général te suit tout au long de la saison.</p></div>
+      <div class="how-card" data-num="4"><div style="font-size:28px;margin-bottom:12px">🎁</div><h3>Gagne</h3><p>Le meilleur pronostiqueur de chaque course remporte un cadeau offert par notre partenaire.</p></div>
+    </div>
+  </div>
+  <div class="section">
+    <div class="section-title">LE BARÈME <span style="color:var(--accent)">POINTS</span></div>
+    <p class="section-subtitle">Plus ta prédiction est précise, plus tu marques</p>
+    <div class="points-table">
+      <div class="pt-row"><div class="pt-pos">🥇</div><div class="pt-desc"><strong>Bonne position exacte</strong><br><span class="pt-bonus">Le bon coureur à la bonne place</span></div><div class="pt-pts">+50 pts</div></div>
+      <div class="pt-row"><div class="pt-pos">✓</div><div class="pt-desc"><strong>Coureur dans le top 5</strong><br><span class="pt-bonus">Bien placé mais pas exactement</span></div><div class="pt-pts">+20 pts</div></div>
+      <div class="pt-row"><div class="pt-pos">⚡</div><div class="pt-desc"><strong>Bonus podium parfait</strong><br><span class="pt-bonus">Les 3 premiers dans le bon ordre</span></div><div class="pt-pts">+100 pts</div></div>
+      <div class="pt-row"><div class="pt-pos">🎯</div><div class="pt-desc"><strong>Top 5 complet parfait</strong><br><span class="pt-bonus">Les 5 premiers dans l'ordre exact</span></div><div class="pt-pts">+300 pts</div></div>
+    </div>
+    <p style="font-size:13px;color:var(--muted);margin-top:12px">Score max par course : 650 pts (5 positions exactes × 50 + bonus top5 + bonus podium × 2 genres)</p>
+  </div>
+</div>
+
+<!-- RACES -->
+<div id="page-races" class="page">
+  <div class="section">
+    <div class="section-title">LES <span style="color:var(--accent)">COURSES</span></div>
+    <p class="section-subtitle">Sélectionne une course pour soumettre tes pronos</p>
+    <div class="race-grid" id="race-grid"><div style="color:var(--muted);font-size:14px;padding:20px">Chargement...</div></div>
+  </div>
+</div>
+
+<!-- PRONO FORM -->
+<div id="page-prono" class="page">
+  <div class="section">
+    <button onclick="showPage('races')" style="background:transparent;border:none;color:var(--muted);cursor:pointer;font-size:14px;margin-bottom:20px;display:flex;align-items:center;gap:6px;font-family:'DM Sans',sans-serif;">← Retour aux courses</button>
+    <div class="form-wrap" id="form-container"></div>
+  </div>
+</div>
+
+<!-- LEADERBOARD -->
+<div id="page-leaderboard" class="page">
+  <div class="section">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:16px;margin-bottom:32px">
+      <div>
+        <div class="section-title">CLASSEMENT <span style="color:var(--accent)">GÉNÉRAL</span></div>
+        <p class="section-subtitle">Mis à jour après chaque course</p>
+      </div>
+    </div>
+    <div class="partner-banner">
+      <div style="font-size:40px">🎁</div>
+      <div class="partner-prize">
+        <div class="prize-label">Prix à gagner — UTMB 2025</div>
+        <div class="prize-name">Dossard + équipement trail</div>
+        <div class="prize-sub">Offert par notre partenaire · Valeur estimée 200€</div>
+      </div>
+      <div style="font-size:12px;color:var(--muted);max-width:180px">Le meilleur pronostiqueur de la course repart avec le lot !</div>
+    </div>
+    <div class="tabs" id="lb-tabs">
+      <button class="tab active" onclick="switchTab('general')">Général saison</button>
+      <button class="tab" onclick="switchTab('utmb2025')">UTMB® 2025</button>
+      <button class="tab" onclick="switchTab('mcc2025')">MCC 2025</button>
+    </div>
+    <div id="leaderboard-list"></div>
+  </div>
+</div>
+
+<!-- ADMIN -->
+<div id="page-admin" class="page">
+  <div class="section" style="max-width:900px">
+    <div class="section-title">ADMIN <span style="color:var(--accent)">PANEL</span></div>
+    <p class="section-subtitle">Gère les courses et entre les résultats officiels</p>
+    <div class="admin-card">
+      <h3>📊 Statistiques</h3>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px">
+        <div style="background:var(--bg3);border-radius:8px;padding:16px;text-align:center"><div style="font-family:'Bebas Neue',sans-serif;font-size:36px;color:var(--accent)" id="admin-stat-pronos">—</div><div style="font-size:12px;color:var(--muted)">Pronos total</div></div>
+        <div style="background:var(--bg3);border-radius:8px;padding:16px;text-align:center"><div style="font-family:'Bebas Neue',sans-serif;font-size:36px;color:var(--blue)" id="admin-stat-players">—</div><div style="font-size:12px;color:var(--muted)">Joueurs uniques</div></div>
+        <div style="background:var(--bg3);border-radius:8px;padding:16px;text-align:center"><div style="font-family:'Bebas Neue',sans-serif;font-size:36px;color:var(--green)" id="admin-stat-races">—</div><div style="font-size:12px;color:var(--muted)">Courses ouvertes</div></div>
+      </div>
+    </div>
+    <div class="admin-card">
+      <h3>🏁 Saisir les résultats officiels</h3>
+      <div style="margin-bottom:16px">
+        <label style="font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:8px">Course concernée</label>
+        <select id="admin-race-select" style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:10px 16px;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:14px;outline:none;width:100%;max-width:300px">
+          <option value="utmb2025">UTMB® 2025</option>
+          <option value="mcc2025">MCC 2025</option>
+          <option value="tor2025">TOR 330 2025</option>
+        </select>
+      </div>
+      <div style="margin-bottom:20px">
+        <div style="font-size:12px;color:var(--accent);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px">Hommes — top 5 officiel</div>
+        <div class="results-grid" id="results-men"></div>
+      </div>
+      <div style="margin-bottom:24px">
+        <div style="font-size:12px;color:var(--blue);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px">Femmes — top 5 officiel</div>
+        <div class="results-grid" id="results-women"></div>
+      </div>
+      <button class="btn-primary" onclick="calculateScores()">Calculer les scores →</button>
+    </div>
+    <div class="admin-card">
+      <h3>📋 Derniers pronos reçus</h3>
+      <div id="admin-pronos-list" style="max-height:400px;overflow-y:auto"></div>
+    </div>
+  </div>
+</div>
+
+<!-- SUCCESS -->
+<div id="page-success" class="page">
+  <div class="section">
+    <div class="success-card">
+      <div class="success-icon">✓</div>
+      <h2 style="font-family:'Bebas Neue',sans-serif;font-size:36px;letter-spacing:2px;margin-bottom:8px">PRONO ENREGISTRÉ !</h2>
+      <p style="color:var(--muted);margin-bottom:8px">Tu recevras les résultats par email dès la fin de la course.</p>
+      <p style="font-size:13px;color:var(--muted);margin-bottom:32px">Partage TrailProno avec tes amis pour augmenter les chances de gagner !</p>
+      <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+        <button class="btn-primary" onclick="showPage('leaderboard')">Voir le classement</button>
+        <button class="btn-secondary" onclick="showPage('races')">Autre course →</button>
+      </div>
+      <div style="margin-top:32px;padding-top:24px;border-top:1px solid var(--border)">
+        <p style="font-size:13px;color:var(--muted);margin-bottom:12px">Partager :</p>
+        <button onclick="shareLink()" style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:10px 20px;border-radius:6px;cursor:pointer;font-size:13px;font-family:'DM Sans',sans-serif">🔗 Copier le lien</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="footer">
+  <span class="logo">TRAIL<span>PRONO</span></span>
+  <p>Le jeu de pronostics des passionnés de trail running</p>
+  <p style="margin-top:8px;font-size:11px">Jeu gratuit · Sans inscription obligatoire · RGPD compliant</p>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- ============================================
+     SUPABASE CLIENT
+     ============================================ -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script>
+
+// ============================================
+// ⚠️  REMPLACE UNIQUEMENT CETTE VALEUR ⚠️
+//     Colle ta clé anon Supabase entre les ''
+//     (Supabase > Settings > API > anon/public)
+// ============================================
+const SUPABASE_URL = 'https://nlizhlfqfsopgapeoytd.supabase.co';
+const SUPABASE_KEY = 'sb_secret_n1ErXLyyvA6pD2B9vBbggA_O3NiEUZSeyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5saXpobGZxZnNvcGdhcGVveXRkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ1MDczNDAsImV4cCI6MjA5MDA4MzM0MH0.y3Hd2JiddJ9BkRIdiqVwTeUqi1FuBcG7tbzAjSR-gl4';
+// ============================================
+
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+let RACES = [];
+let PRONOS = [];
+let currentRace = null;
+let currentTab = 'general';
+
+// ---- INIT ----
+async function init() {
+  try {
+    const { data: races, error: e1 } = await sb.from('races').select('*').order('race_date');
+    if (e1) throw e1;
+    RACES = races || [];
+
+    const { data: pronos, error: e2 } = await sb.from('pronos').select('*').order('submitted_at', { ascending: false });
+    if (e2) throw e2;
+    PRONOS = (pronos || []).map(p => ({ ...p, men: p.men || [], women: p.women || [] }));
+
+    updateStats();
+    renderRaces();
+    renderLeaderboard();
+    renderAdminPronos();
+    renderResultInputs();
+  } catch (err) {
+    console.error('Erreur init:', err);
+    showToast('Erreur connexion base de données — vérifie ta clé API', 'error');
+  }
+}
+
+// ---- STATS ----
+function updateStats() {
+  document.getElementById('stat-pronos').textContent = PRONOS.length;
+  document.getElementById('stat-races').textContent = RACES.filter(r => r.status === 'open').length;
+  document.getElementById('admin-stat-pronos').textContent = PRONOS.length;
+  document.getElementById('admin-stat-players').textContent = new Set(PRONOS.map(p => p.email)).size;
+  document.getElementById('admin-stat-races').textContent = RACES.filter(r => r.status === 'open').length;
+}
+
+// ---- NAV ----
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  const pages = ['home','races','leaderboard','admin'];
+  document.querySelectorAll('.nav button').forEach((b, i) => b.classList.toggle('active', pages[i] === name));
+  window.scrollTo(0, 0);
+}
+
+function openRace(raceId) {
+  currentRace = RACES.find(r => r.id === raceId);
+  if (!currentRace) return;
+  renderForm(currentRace);
+  showPage('prono');
+}
+
+// ---- RACES ----
+function renderRaces() {
+  const grid = document.getElementById('race-grid');
+  if (!RACES.length) { grid.innerHTML = '<div style="color:var(--muted)">Aucune course disponible.</div>'; return; }
+  const statusLabel = { open:'Pronos ouverts', closed:'Fermé', soon:'Bientôt', live:'EN DIRECT' };
+  grid.innerHTML = RACES.map(r => {
+    const count = PRONOS.filter(p => p.race_id === r.id).length;
+    return `
+    <div class="race-card ${r.featured ? 'featured' : ''}" onclick="${r.status==='open' ? `openRace('${r.id}')` : ''}">
+      <div class="race-img">
+        <span class="race-status ${r.status}">${statusLabel[r.status] || r.status}</span>
+        <div>
+          <div class="race-name">${r.name} ${r.year}</div>
+          <div class="race-km">${r.km} · ${r.elevation}</div>
+        </div>
+      </div>
+      <div class="race-body">
+        <div class="race-meta">
+          <div class="race-meta-item">📅 <strong>${formatDate(r.race_date)}</strong></div>
+          <div class="race-meta-item">📍 ${r.location}</div>
+        </div>
+        <div class="race-meta"><div class="race-meta-item">🎁 ${r.prize || 'À annoncer'}</div></div>
+        <div class="race-pronos">
+          <span class="prono-count">${count}</span> pronostic${count > 1 ? 's' : ''} soumis
+          ${r.status==='open' ? '<span style="margin-left:auto;color:var(--accent);font-size:13px;font-weight:600">Jouer →</span>' : ''}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function formatDate(d) {
+  if (!d) return '—';
+  return new Date(d).toLocaleDateString('fr-FR', { day:'numeric', month:'long', year:'numeric' });
+}
+
+// ---- FORM ----
+function renderForm(race) {
+  document.getElementById('form-container').innerHTML = `
+    <div class="form-race-header">
+      <div class="form-race-icon">${race.name.slice(0,3)}</div>
+      <div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:1px">${race.name} ${race.year}</div>
+        <div style="font-size:13px;color:var(--muted)">${race.km} · ${race.location}</div>
+      </div>
+    </div>
+    <div class="form-step">
+      <div class="step-label">01 — Ton identité</div>
+      <div class="form-row">
+        <div class="form-field"><label>Pseudo *</label><input type="text" id="f-pseudo" placeholder="TrailBison47" maxlength="30"></div>
+        <div class="form-field"><label>Email *</label><input type="email" id="f-email" placeholder="toi@email.com"></div>
+      </div>
+    </div>
+    <div class="form-step">
+      <div class="step-label">02 — Top 5 Hommes</div>
+      <div class="runners-grid">
+        ${[1,2,3,4,5].map(i => `
+        <div class="runner-slot">
+          <div class="runner-pos">${i}</div>
+          <input type="text" id="m${i}" placeholder="Nom" autocomplete="off">
+          <div class="runner-gender" style="color:var(--blue)">Homme</div>
+        </div>`).join('')}
+      </div>
+    </div>
+    <div class="form-step">
+      <div class="step-label">03 — Top 5 Femmes</div>
+      <div class="runners-grid">
+        ${[1,2,3,4,5].map(i => `
+        <div class="runner-slot">
+          <div class="runner-pos">${i}</div>
+          <input type="text" id="f${i}" placeholder="Nom" autocomplete="off">
+          <div class="runner-gender" style="color:var(--red)">Femme</div>
+        </div>`).join('')}
+      </div>
+    </div>
+    <div class="form-submit-area">
+      <p class="legal-notice">En participant, tu acceptes que ton pseudo et email soient utilisés pour le classement TrailProno. Pas de spam, pas de revente. Tu peux te désinscrire à tout moment.</p>
+      <button class="submit-btn" id="submit-btn" onclick="submitProno()">Soumettre mon prono 🏔️</button>
+    </div>`;
+}
+
+async function submitProno() {
+  const pseudo = document.getElementById('f-pseudo').value.trim();
+  const email = document.getElementById('f-email').value.trim();
+  const men = [1,2,3,4,5].map(i => document.getElementById('m'+i).value.trim());
+  const women = [1,2,3,4,5].map(i => document.getElementById('f'+i).value.trim());
+
+  if (!pseudo) return showToast('Entre un pseudo', 'error');
+  if (!email || !email.includes('@')) return showToast('Email invalide', 'error');
+  if (men.filter(Boolean).length < 3) return showToast('Remplis au moins 3 positions hommes', 'error');
+  if (women.filter(Boolean).length < 3) return showToast('Remplis au moins 3 positions femmes', 'error');
+
+  const btn = document.getElementById('submit-btn');
+  btn.disabled = true;
+  btn.textContent = 'Envoi en cours...';
+
+  await sb.from('pronos').delete().eq('email', email).eq('race_id', currentRace.id);
+
+  const { error } = await sb.from('pronos').insert({
+    race_id: currentRace.id, pseudo, email, men, women, score_total: null
+  });
+
+  if (error) {
+    btn.disabled = false;
+    btn.textContent = 'Soumettre mon prono 🏔️';
+    return showToast('Erreur : ' + error.message, 'error');
+  }
+
+  await init();
+  showPage('success');
+}
+
+// ---- SCORING ----
+function calcScore(predictions, results) {
+  let score = 0;
+  const r = results.map(x => x.toLowerCase().trim()).filter(Boolean);
+  const p = predictions.map(x => (x || '').toLowerCase().trim());
+  p.forEach((name, idx) => {
+    if (!name) return;
+    const realIdx = r.indexOf(name);
+    if (realIdx === idx) score += 50;
+    else if (realIdx >= 0) score += 20;
+  });
+  if (r.length >= 3 && p[0]===r[0] && p[1]===r[1] && p[2]===r[2]) score += 100;
+  if (r.length >= 5 && p.slice(0,5).join('|') === r.slice(0,5).join('|')) score += 300;
+  return score;
+}
+
+async function calculateScores() {
+  const raceId = document.getElementById('admin-race-select').value;
+  const men = [1,2,3,4,5].map(i => { const el = document.getElementById('res-m'+i); return el ? el.value.trim() : ''; });
+  const women = [1,2,3,4,5].map(i => { const el = document.getElementById('res-f'+i); return el ? el.value.trim() : ''; });
+
+  if (men.filter(Boolean).length < 3 || women.filter(Boolean).length < 3) {
+    return showToast('Entre au moins 3 résultats H et F', 'error');
+  }
+
+  const racePronos = PRONOS.filter(p => p.race_id === raceId);
+  if (!racePronos.length) return showToast('Aucun prono pour cette course', 'error');
+
+  showToast('Calcul en cours...', 'info');
+
+  for (const p of racePronos) {
+    const score = calcScore(p.men, men) + calcScore(p.women, women);
+    await sb.from('pronos').update({ score_total: score }).eq('id', p.id);
+  }
+
+  await init();
+  showToast('Scores calculés pour ' + racePronos.length + ' pronos !', 'success');
+}
+
+// ---- LEADERBOARD ----
+function switchTab(tab) {
+  currentTab = tab;
+  document.querySelectorAll('#lb-tabs .tab').forEach((b, i) => {
+    b.classList.toggle('active', ['general','utmb2025','mcc2025'][i] === tab);
+  });
+  renderLeaderboard();
+}
+
+function renderLeaderboard() {
+  const list = document.getElementById('leaderboard-list');
+  let data = [];
+
+  if (currentTab === 'general') {
+    const map = {};
+    PRONOS.forEach(p => {
+      if (p.score_total === null || p.score_total === undefined) return;
+      if (!map[p.email]) map[p.email] = { pseudo: p.pseudo, email: p.email, total: 0 };
+      map[p.email].total += p.score_total;
+    });
+    data = Object.values(map).sort((a, b) => b.total - a.total);
+  } else {
+    data = PRONOS
+      .filter(p => p.race_id === currentTab && p.score_total !== null && p.score_total !== undefined)
+      .sort((a, b) => b.score_total - a.score_total)
+      .map(p => ({ pseudo: p.pseudo, email: p.email, total: p.score_total }));
+  }
+
+  if (!data.length) {
+    list.innerHTML = `<div style="text-align:center;padding:60px 20px;color:var(--muted)">
+      <div style="font-size:40px;margin-bottom:16px">🔮</div>
+      <p>Les scores seront disponibles après la course.</p>
+      <p style="font-size:13px;margin-top:8px">${PRONOS.length} prono(s) en attente !</p>
+    </div>`;
+    return;
+  }
+
+  const badges = ['badge-gold','badge-silver','badge-bronze'];
+  const prizes = ['🥇 Gagnant','🥈 2ème','🥉 3ème'];
+  list.innerHTML = `
+    <div class="leaderboard-header"><div>Rang</div><div>Joueur</div><div>Score</div><div>Prix</div></div>
+    ${data.map((p, i) => `
+    <div class="leaderboard-row ${i===0?'top1':i===1?'top2':i===2?'top3':''}">
+      <div class="rank ${i<3?'r'+(i+1):''}">${i+1}</div>
+      <div class="player-info">
+        <div class="player-pseudo">${escHtml(p.pseudo)}</div>
+        <div class="player-email">${maskEmail(p.email)}</div>
+      </div>
+      <div class="player-score">${p.total} pts</div>
+      <div><span class="player-badge ${i<3?badges[i]:'badge-default'}">${i<3?prizes[i]:'Joueur'}</span></div>
+    </div>`).join('')}`;
+}
+
+// ---- ADMIN ----
+function renderResultInputs() {
+  ['men','women'].forEach(g => {
+    const prefix = g === 'men' ? 'res-m' : 'res-f';
+    document.getElementById('results-' + g).innerHTML = [1,2,3,4,5].map(i => `
+      <div class="result-slot">
+        <div class="pos">${i}</div>
+        <input type="text" id="${prefix}${i}" placeholder="${g==='men'?'Homme':'Femme'} ${i}">
+      </div>`).join('');
+  });
+}
+
+function renderAdminPronos() {
+  const list = document.getElementById('admin-pronos-list');
+  if (!PRONOS.length) { list.innerHTML = '<p style="color:var(--muted);font-size:13px">Aucun prono reçu pour le moment.</p>'; return; }
+  list.innerHTML = PRONOS.slice(0, 50).map(p => `
+    <div style="border-bottom:1px solid var(--border);padding:12px 0;display:grid;grid-template-columns:1fr 1fr auto;gap:12px;align-items:center;font-size:13px">
+      <div>
+        <strong>${escHtml(p.pseudo)}</strong>
+        <div style="color:var(--muted);font-size:11px">${p.email} · ${p.race_id}</div>
+      </div>
+      <div style="color:var(--muted);font-size:12px">
+        H: ${p.men.filter(Boolean).join(', ') || '—'}<br>
+        F: ${p.women.filter(Boolean).join(', ') || '—'}
+      </div>
+      <div style="font-family:'DM Mono',monospace;color:${p.score_total != null ? 'var(--green)' : 'var(--muted)'};font-size:13px">
+        ${p.score_total != null ? p.score_total + ' pts' : '—'}
+      </div>
+    </div>`).join('');
+}
+
+// ---- UTILS ----
+function showToast(msg, type = 'info') {
+  const t = document.getElementById('toast');
+  t.innerHTML = (type==='success'?'✓ ':type==='error'?'✕ ':'') + msg;
+  t.className = 'toast show ' + type;
+  clearTimeout(window._toastTimer);
+  window._toastTimer = setTimeout(() => t.classList.remove('show'), 3500);
+}
+
+function maskEmail(email) {
+  const parts = email.split('@');
+  if (parts.length < 2) return email;
+  return parts[0].slice(0, 2) + '***@' + parts[1];
+}
+
+function escHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function shareLink() {
+  const url = window.location.href;
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(url).then(() => showToast('Lien copié !', 'success'));
+  } else {
+    showToast('URL : ' + url);
+  }
+}
+
+// ---- GO ----
+init();
+</script>
+</body>
+</html>
